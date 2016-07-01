@@ -2,7 +2,7 @@ import xbox
 import socket
 import pyBotServo
 import time
-from pyBot import pressTime
+###from pyBot import pressTime
 
 
 
@@ -27,12 +27,7 @@ GRIP = 5
 
 # servoPositions = [90, 65, 65, 170, 90, 120]
 
-armServos = [pyBotServo.pyBotServo("base", 90, 0, 180),
-             pyBotServo.pyBotServo("shoulder" , 65, 20, 170),
-             pyBotServo.pyBotServo("elbow" , 65, 20, 170),
-             pyBotServo.pyBotServo("wrist" , 170, 30, 180),
-             pyBotServo.pyBotServo("rotate", 90, 0, 180),
-             pyBotServo.pyBotServo("grip", 120, 110, 180)]
+armServos = [pyBotServo.pyBotServo("base", 90, 0, 180), pyBotServo.pyBotServo("shoulder" , 65, 20, 170), pyBotServo.pyBotServo("elbow" , 65, 20, 170), pyBotServo.pyBotServo("wrist" , 170, 30, 180), pyBotServo.pyBotServo("rotate", 90, 0, 180), pyBotServo.pyBotServo("grip", 120, 110, 180)]
 
 
 
