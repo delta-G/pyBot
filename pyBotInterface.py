@@ -1,9 +1,6 @@
 import xbox
 import socket
 import pyBotServo
-import time
-from pyBot import pressTime
-
 
 
 print("Global Interface")
@@ -113,17 +110,10 @@ def armCommandSender(servo):
     print(commandString)
     
     return
-
-lastXPushTime = time.time() 
+    
     
 def armMode():
     
-    if joy.X():
-        pressTime = time.time()
-        if(pressTime - lastXPushTime >= 1):
-            sockOut.send("<R>")
-        lastXPushTime = pressTime
-                    
     
     leftX = joy.leftX();
     leftY = joy.leftY();
