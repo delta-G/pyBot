@@ -1,6 +1,7 @@
 import xbox
 import time
 import pyBotInterface
+import os
 
 print("Starting")
 
@@ -41,11 +42,12 @@ try:
             pyBotInterface.driveMode()
         elif(controlMode == 1):
             pyBotInterface.armMode()
-        time.sleep(0.10)
+        time.sleep(0.02)
             
     
 
 finally:
     #Always close out so that xboxdrv subprocess ends
     pyBotInterface.joy.close()
+    os.system('pkill -9 xboxdrv')
     print "Done."

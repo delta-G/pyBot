@@ -1,16 +1,15 @@
 import xbox
 import socket
 import pyBotServo
-import time
-###from pyBot import pressTime
 
-
+SOCKACTIVE = False
 
 print("Global Interface")
 
-sockOut = socket.socket(socket.AF_INET , socket.SOCK_STREAM)
+if SOCKACTIVE:
+    sockOut = socket.socket(socket.AF_INET , socket.SOCK_STREAM)
 
-sockArgs = ('192.168.4.1' , 1234)
+    sockArgs = ('192.168.4.1' , 1234)
 
 joy = xbox.Joystick()
 
@@ -27,7 +26,7 @@ GRIP = 5
 
 # servoPositions = [90, 65, 65, 170, 90, 120]
 
-armServos = [pyBotServo.pyBotServo("base", 90, 0, 180), pyBotServo.pyBotServo("shoulder" , 65, 20, 170), pyBotServo.pyBotServo("elbow" , 65, 20, 170), pyBotServo.pyBotServo("wrist" , 170, 30, 180), pyBotServo.pyBotServo("rotate", 90, 0, 180), pyBotServo.pyBotServo("grip", 120, 110, 180)]
+armServos = [pyBotServo.pyBotServo("base", 90, 0, 180), pyBotServo.pyBotServo("shoulder" , 65, 0, 180), pyBotServo.pyBotServo("elbow" , 65, 0, 180), pyBotServo.pyBotServo("wrist" , 170, 0, 180), pyBotServo.pyBotServo("rotate", 90, 0, 180), pyBotServo.pyBotServo("grip", 120, 110, 180)]
 
 
 
@@ -35,8 +34,8 @@ armServos = [pyBotServo.pyBotServo("base", 90, 0, 180), pyBotServo.pyBotServo("s
 
 
 def init():
-    
-    sockOut.connect(sockArgs)
+    if SOCKACTIVE:
+        sockOut.connect(sockArgs)
     return
 
 
@@ -49,39 +48,47 @@ def driveMode():
     leftY = joy.leftY()
     rightY = joy.rightY()
     
+    ml = 0
+    mr = 0
+    
     
     if (leftY > 0) :
-        motorLeft = 1
+        ml = 1
     elif (leftY < 0) :
-        motorLeft = -1;
+        ml = -1;
     else: 
-        motorLeft = 0    
+        ml = 0    
     
     if rightY > 0 :
-        motorRight = 1
+        mr = 1
     elif rightY < 0 :
-        motorRight = -1;
+        mr = -1;
     else: 
-        motorRight = 0
+        mr = 0
         
+    if ml != motorLeft:
+        motorLeft = ml
+        commandString = ""
+        commandString += "<"
+        commandString += "ML"
+        commandString += ","
+        commandString += str(motorLeft)
+        commandString += ">"
+        if SOCKACTIVE:
+            sockOut.send(commandString)
+        print commandString
     
-    commandString = ""
-    commandString += "<"
-    commandString += "MR"
-    commandString += ","
-    commandString += str(motorRight)
-    commandString += ">"
-    sockOut.send(commandString)
-    print commandString
-    
-    commandString = ""
-    commandString += "<"
-    commandString += "ML"
-    commandString += ","
-    commandString += str(motorLeft)
-    commandString += ">"
-    sockOut.send(commandString)
-    print commandString   
+    if mr != motorRight:
+        motorRight = mr
+        commandString = ""
+        commandString += "<"
+        commandString += "MR"
+        commandString += ","
+        commandString += str(motorRight)
+        commandString += ">"
+        if SOCKACTIVE:
+            sockOut.send(commandString)
+        print commandString   
         
     return
 
@@ -104,21 +111,83 @@ def armCommandSender(servo):
     commandString += ","
     commandString += str(armServos[servo].position)
     commandString += ">"
-    sockOut.send(commandString)
+    if SOCKACTIVE:
+        sockOut.send(commandString)
     print(commandString)
     
     return
-
-lastXPushTime = time.time() 
+    
+def dpadMotor():
+    
+    global motorLeft
+    global motorRight
+    
+    ml = 0
+    mr = 0
+    
+    dpad = ((joy.dpadDown() << 3) | (joy.dpadLeft() << 2) | (joy.dpadRight() << 1) | (joy.dpadUp()))
+    
+    if(dpad == 0):
+        ml = 0
+        mr = 0
+    elif(dpad == 1):
+        ml = 1
+        mr  = 1
+    elif(dpad == 2):
+        ml = 1
+        mr  = -1
+    elif(dpad == 3):
+        ml = 1
+        mr  = 0
+    elif(dpad == 4):
+        ml = -1
+        mr  = 1
+    elif(dpad == 5):
+        ml = 0
+        mr  = 1
+    elif(dpad == 8):
+        ml = -1
+        mr  = -1
+    elif(dpad == 10):
+        ml = -1
+        mr  = 0
+    elif(dpad == 12):
+        ml = 0
+        mr  = -1
+    else:
+        ml = 0
+        mr = 0
+    
+    
+    if ml != motorLeft:
+        motorLeft = ml
+        commandString = ""
+        commandString += "<"
+        commandString += "ML"
+        commandString += ","
+        commandString += str(motorLeft)
+        commandString += ">"
+        if SOCKACTIVE:
+            sockOut.send(commandString)
+        print commandString
+    
+    if mr != motorRight:
+        motorRight = mr
+        commandString = ""
+        commandString += "<"
+        commandString += "MR"
+        commandString += ","
+        commandString += str(motorRight)
+        commandString += ">"
+        if SOCKACTIVE:
+            sockOut.send(commandString)
+        print commandString    
+    
+    return
     
 def armMode():
     
-    if joy.X():
-        pressTime = time.time()
-        if(pressTime - lastXPushTime >= 1):
-            sockOut.send("<R>")
-        lastXPushTime = pressTime
-                    
+    dpadMotor()    
     
     leftX = joy.leftX();
     leftY = joy.leftY();
@@ -128,6 +197,11 @@ def armMode():
     rightBump = joy.rightBumper()
     leftTrigger = joy.leftTrigger()
     rightTrigger = joy.rightTrigger()
+    
+    
+    
+    
+    
     
     armModeHelper(leftX, ROTATE)
     armModeHelper(leftY, WRIST)
@@ -140,6 +214,8 @@ def armMode():
     elif(rightBump):
         armServos[BASE].increase()
         armCommandSender(BASE)
+    
+    
     
     return
     
