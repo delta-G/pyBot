@@ -1,3 +1,4 @@
+import math
 
 
 class pyBotServo:
@@ -9,6 +10,7 @@ class pyBotServo:
         self.maximum = maximum
         self.target = initial
         self.position = initial
+        self.incrementSpeed = 10
         
         return
     
@@ -31,6 +33,11 @@ class pyBotServo:
         self.scaleTarget()
         return
     
+    def moveToImmediate(self, posit):
+        self.position = posit
+        self.scalePosition()
+        return
+    
     def increase(self):
         self.position = self.position + 1
         self.scalePosition()
@@ -39,6 +46,11 @@ class pyBotServo:
     def decrease(self):
         self.position = self.position - 1
         self.scalePosition()
+        return
+    
+    def increment(self, stickPosition):
+        amt = self.incrementSpeed * stickPosition        
+        self.moveToImmediate(int(self.position + amt))
         return
     
     
