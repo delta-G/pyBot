@@ -20,7 +20,8 @@ class pyBotController:
 #         self.sockOut.setblocking(0)
         
 
-        self.sockArgs = ('192.168.4.1' , 1234)
+#         self.sockArgs = ('192.168.4.1' , 1234)
+        self.sockArgs = ('192.168.1.75' , 1234)
 
         self.joy = xbox.Joystick()
         
@@ -52,9 +53,24 @@ class pyBotController:
         self.armServos = [pyBotServo.pyBotServo("base", 1500, 544, 2400), pyBotServo.pyBotServo("shoulder" , 1214, 544, 2400), pyBotServo.pyBotServo("elbow" , 1215, 544, 2400), pyBotServo.pyBotServo("wrist" , 2000, 544, 2400), pyBotServo.pyBotServo("rotate", 1500, 544, 2400), pyBotServo.pyBotServo("grip", 2000, 1680, 2400)]
         
     
-    def runInterface(self):
-    
+    def outPutRunner(self, cs):
+        if self.socketConnected:
+            self.sockOut.send(cs)
+        print(cs)
         
+        return
+    
+    def moveToByAngle(self, aTup):
+        i = 0
+        for servo in self.armServos:
+            servo.moveToImmediate(servo.angleToMicroseconds(aTup[i]))
+            self.armCommandSender(i)
+            i += 1
+         
+        return
+    
+    
+    def runInterface(self):       
         
         if(self.joy.Start() and not self.socketConnected):
             print("Connecting to Robot")
@@ -71,7 +87,7 @@ class pyBotController:
         
         if time.time() - self.lastRunTime >= 0.02:
             if(joyA and not self.lastA):
-                self.requestFromESP('B')
+                self.requestFromESP('A')
             self.lastA = joyA
         
             if (joyY and not self.lastY):
@@ -112,6 +128,7 @@ class pyBotController:
             except socket.error, e:
                 err = e.args[0]
                 if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+#                     print"EAGAIN or EWOULDBLOCK"
                     pass
                 else:
                     # a REAL error occurred
@@ -129,9 +146,7 @@ class pyBotController:
         commandString += "R"
         commandString += reqStr
         commandString += ">"
-        if self.socketConnected:
-            self.sockOut.send(commandString)
-        print commandString
+        self.outPutRunner(commandString)
         
         
         
@@ -185,9 +200,7 @@ class pyBotController:
             commandString += ","
             commandString += str(self.motorLeft)
             commandString += ">"
-            if self.socketConnected:
-                self.sockOut.send(commandString)
-            print commandString
+            self.outPutRunner(commandString)
         
         if mr != self.motorRight:
             self.motorRight = mr
@@ -197,9 +210,7 @@ class pyBotController:
             commandString += ","
             commandString += str(self.motorRight)
             commandString += ">"
-            if self.socketConnected:
-                self.sockOut.send(commandString)
-            print commandString   
+            self.outPutRunner(commandString)   
             
         return
     
@@ -227,9 +238,7 @@ class pyBotController:
         commandString += ","
         commandString += str(self.armServos[servo].position)
         commandString += ">"
-        if self.socketConnected:
-            self.sockOut.send(commandString)
-        print(commandString)
+        self.outPutRunner(commandString)
         
         return
         
@@ -280,9 +289,7 @@ class pyBotController:
             commandString += ","
             commandString += str(self.motorLeft)
             commandString += ">"
-            if self.socketConnected:
-                self.sockOut.send(commandString)
-            print commandString
+            self.outPutRunner(commandString)
         
         if mr != self.motorRight:
             self.motorRight = mr
@@ -292,9 +299,7 @@ class pyBotController:
             commandString += ","
             commandString += str(self.motorRight)
             commandString += ">"
-            if self.socketConnected:
-                self.sockOut.send(commandString)
-            print commandString    
+            self.outPutRunner(commandString)   
         
         return
         

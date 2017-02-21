@@ -8,11 +8,17 @@ class pyBotServo:
         self.name = name
         self.minimum = minimum
         self.maximum = maximum
+        self.minimumAngle = 0
+        self.maximumAngle = math.pi
         self.target = initial
         self.position = initial
         self.incrementSpeed = 10
         
         return
+    
+    ### Takes angle in radians
+    def angleToMicroseconds(self, aAngle):
+        return ((aAngle / math.pi) * (self.maximum - self.minimum)) + self.minimum
     
     def scalePosition(self):
         if self.position > self.maximum:
