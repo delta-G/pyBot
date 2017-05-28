@@ -11,6 +11,12 @@ class pyBotController:
     
     def __init__(self):
         
+        print """ 
+        ***********************
+****      pyBot Interface   *********
+************************************
+"""
+        
         self.socketConnected = False 
         
         print("Global Interface")
@@ -28,10 +34,13 @@ class pyBotController:
         print "Controller attached!"
 
         self.returnBuffer = ""
+        self.receivingReturn = False
+        self.lastRMBheartBeat = time.time()
+        self.RMBheartBeatWarning = time.time()
 
 
-        self.motorRight = 0;
-        self.motorLeft = 0;
+        self.motorRight = 0
+        self.motorLeft = 0
         
         self.invertShoulder = False
         self.invertElbow = False
@@ -107,23 +116,26 @@ class pyBotController:
             self.lastRunTime = time.time()
         
         self.listenForESP()
+        
+        if (time.time() - self.lastRMBheartBeat >= 10) and (time.time() - self.RMBheartBeatWarning >= 10):
+            print "**************   MISSING RMB HEARTBEAT ",
+            print time.time() - self.lastRMBheartBeat,
+            print "  Seconds  ***************"
+            self.RMBheartBeatWarning = time.time()
+            
+        
             
         return True
     
     
     def listenForESP(self):
         
+        
         if self.socketConnected:
             try:
-                c = self.sockOut.recvfrom(1024, MSG_DONTWAIT)
-#                 while c != "":
-#                     self.returnBuffer += c
-#                     if c == '>':
-#                         print self.returnBuffer
-#                         self.returnBuffer = ""
-#                     c = self.sockOut.recv(1)
-                if c != "":
-                    print c
+                line_read = self.sockOut.recvfrom(1024, MSG_DONTWAIT)[0]   
+#                 if line_read != "" :  
+#                     print "line_read = ", line_read 
         
             except socket.error, e:
                 err = e.args[0]
@@ -135,8 +147,36 @@ class pyBotController:
                     print"Bad Error in linstenForESP"
                     print err
             else:
-                print c
+#                 print "ENTERED ELSE"
+                for c in line_read:
+#                     if c != "":   
+#                         print c , '\n'               
+                        
+                        if c == '<':
+                            self.returnBuffer = ""
+                            self.receivingReturn = True
+                            
+                        if self.receivingReturn == True:
+                            if c != None:
+                                self.returnBuffer += str(c)
+                            
+                            if c == '>':
+                                self.parseReturnString()
+                                self.receivingReturn = False
+                        
         return
+    
+    def parseReturnString(self):
+        if self.returnBuffer == "<RMB HB>":
+            self.lastRMBheartBeat = time.time()
+            print self.returnBuffer
+        else:
+            print "returnBuffer = " , self.returnBuffer
+#             print self.returnBuffer
+        
+        return
+        
+        
     
     
     def requestFromESP(self, reqStr):

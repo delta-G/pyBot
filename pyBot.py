@@ -17,6 +17,7 @@ try:
     print "Waiting for Joystick to connect"
     while not controller.joy.connected():
         time.sleep(0.10)
+    print "Joystick Connected"
         
     while controller.runInterface():
         pass            
