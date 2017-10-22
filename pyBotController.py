@@ -26,8 +26,8 @@ class pyBotController:
 #         self.sockOut.setblocking(0)
         
 
-#         self.sockArgs = ('192.168.4.1' , 1234)
-        self.sockArgs = ('192.168.1.75' , 1234)
+        self.sockArgs = ('192.168.4.1' , 1234)
+##        self.sockArgs = ('192.168.1.75' , 1234)
 
         self.joy = xbox.Joystick()
         
@@ -37,6 +37,7 @@ class pyBotController:
         self.receivingReturn = False
         self.lastRMBheartBeat = time.time()
         self.RMBheartBeatWarning = time.time()
+        self.lastGimbalTime = time.time()
 
 
         self.motorRight = 0
@@ -52,6 +53,7 @@ class pyBotController:
         self.lastThumbL = 0
         self.controlMode = 0
         self.lastRunTime = 0
+        self.lastRMBhbRequest = 0
 
         self.BASE = 0
         self.SHOULDER = 1
@@ -59,7 +61,9 @@ class pyBotController:
         self.WRIST = 3
         self.ROTATE = 4
         self.GRIP = 5
-        self.armServos = [pyBotServo.pyBotServo("base", 1500, 544, 2400), pyBotServo.pyBotServo("shoulder" , 1214, 544, 2400), pyBotServo.pyBotServo("elbow" , 1215, 544, 2400), pyBotServo.pyBotServo("wrist" , 2000, 544, 2400), pyBotServo.pyBotServo("rotate", 1500, 544, 2400), pyBotServo.pyBotServo("grip", 2000, 1680, 2400)]
+        self.PAN = 7
+        self.TILT = 6
+        self.armServos = [pyBotServo.pyBotServo("base", 1500, 544, 2400), pyBotServo.pyBotServo("shoulder" , 1214, 544, 2400), pyBotServo.pyBotServo("elbow" , 1215, 544, 2400), pyBotServo.pyBotServo("wrist" , 2000, 544, 2400), pyBotServo.pyBotServo("rotate", 1500, 544, 2400), pyBotServo.pyBotServo("grip", 2000, 1680, 2400), pyBotServo.pyBotServo("pan", 1500, 1000, 2400), pyBotServo.pyBotServo("tilt", 1500, 1000, 2400)]
         
     
     def outPutRunner(self, cs):
@@ -93,6 +97,10 @@ class pyBotController:
         
         if self.joy.Back() or not self.joy.connected():
             return False
+        
+        if time.time() - self.lastRMBhbRequest >= 2:
+            self.outPutRunner("<B,HB>")
+            self.lastRMBhbRequest = time.time()
         
         if time.time() - self.lastRunTime >= 0.02:
             if(joyA and not self.lastA):
@@ -198,6 +206,8 @@ class pyBotController:
     
     def driveMode(self):
         
+        self.dpadGimbal()
+        
         leftBump = self.joy.leftBumper()
         rightBump = self.joy.rightBumper()
         leftTrigger = self.joy.leftTrigger()
@@ -281,6 +291,78 @@ class pyBotController:
         self.outPutRunner(commandString)
         
         return
+    
+    def stickGimbal(self, panVal, tiltVal):
+        
+        if time.time() - self.lastGimbalTime >= 0.2:
+            self.lastGimbalTime = time.time()
+            
+            self.armModeHelper(panVal, self.PAN)
+            self.armModeHelper(tiltVal, self.TILT)
+            
+        
+        return
+    
+    def dpadGimbal(self):
+        
+        if time.time() - self.lastGimbalTime >= 0.2:
+            self.lastGimbalTime = time.time()
+        
+        
+            dpad = ((self.joy.dpadDown() << 3) | (self.joy.dpadLeft() << 2) | (self.joy.dpadRight() << 1) | (self.joy.dpadUp()))
+        
+            ## Nothing Pressed
+            if(dpad == 0):
+                pass
+            ## UP 
+            elif(dpad == 1):
+                self.armServos[self.TILT].increment(-1)
+                self.armCommandSender(self.TILT)
+                
+            ## RIGHT
+            elif(dpad == 2):
+                self.armServos[self.PAN].increment(-1)
+                self.armCommandSender(self.PAN)
+            ## UP / RIGHT
+            elif(dpad == 3):
+                self.armServos[self.TILT].increment(-1)
+                self.armServos[self.PAN].increment(-1)
+                self.armCommandSender(self.TILT)
+                self.armCommandSender(self.PAN)
+            ## LEFT
+            elif(dpad == 4):
+                self.armServos[self.PAN].increment(1)
+                self.armCommandSender(self.PAN)
+            ## UP / LEFT
+            elif(dpad == 5):
+                self.armServos[self.TILT].increment(-1)
+                self.armServos[self.PAN].increment(1)
+                self.armCommandSender(self.TILT)
+                self.armCommandSender(self.PAN)
+            ## DOWN
+            elif(dpad == 8):
+                self.armServos[self.TILT].increment(1)
+                self.armCommandSender(self.TILT)
+            ## DOWN / RIGHT
+            elif(dpad == 10):
+                self.armServos[self.TILT].increment(1)
+                self.armServos[self.PAN].increment(-1)
+                self.armCommandSender(self.PAN)
+                self.armCommandSender(self.TILT)
+            ## DOWN / LEFT
+            elif(dpad == 12):
+                self.armServos[self.TILT].increment(1)
+                self.armServos[self.PAN].increment(1)
+                self.armCommandSender(self.PAN)
+                self.armCommandSender(self.TILT)
+            else:
+                pass        
+        
+        
+        
+        
+        return
+    
         
     def dpadMotor(self):
         
@@ -289,30 +371,39 @@ class pyBotController:
         
         dpad = ((self.joy.dpadDown() << 3) | (self.joy.dpadLeft() << 2) | (self.joy.dpadRight() << 1) | (self.joy.dpadUp()))
         
+        ## Nothing Pressed
         if(dpad == 0):
             ml = 0
             mr = 0
+        ## UP 
         elif(dpad == 1):
             ml = 1
             mr  = 1
+        ## RIGHT
         elif(dpad == 2):
             ml = 1
             mr  = -1
+        ## UP / RIGHT
         elif(dpad == 3):
             ml = 1
             mr  = 0
+        ## LEFT
         elif(dpad == 4):
             ml = -1
             mr  = 1
+        ## UP / LEFT
         elif(dpad == 5):
             ml = 0
             mr  = 1
+        ## DOWN
         elif(dpad == 8):
             ml = -1
             mr  = -1
+        ## DOWN / RIGHT
         elif(dpad == 10):
             ml = -1
             mr  = 0
+        ## DOWN / LEFT
         elif(dpad == 12):
             ml = 0
             mr  = -1
