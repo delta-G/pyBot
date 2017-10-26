@@ -104,7 +104,7 @@ class pyBotController:
         
         if time.time() - self.lastRunTime >= 0.02:
             if(joyA and not self.lastA):
-                self.requestFromESP('A')
+                self.requestFromESP('B')
             self.lastA = joyA
         
             if (joyY and not self.lastY):
@@ -191,7 +191,7 @@ class pyBotController:
         
         commandString = ""
         commandString += "<"
-        commandString += "R"
+        commandString += "R,"
         commandString += reqStr
         commandString += ">"
         self.outPutRunner(commandString)
