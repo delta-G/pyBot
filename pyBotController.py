@@ -1,3 +1,19 @@
+#  pyBot  --  The Python control software for my robot
+#     Copyright (C) 2016  David C.
+# 
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+# 
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+# 
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import xbox
 import socket
 import pyBotServo
@@ -14,13 +30,27 @@ class pyBotController:
         
         print """ 
         ***********************
-****      pyBot Interface   *********
-************************************
+*********   pyBot Interface   *******
+ ***********************************
 """
+
+        print """
+        
+*********************************************************************        
+*********************************************************************        
+******* pyBot  Copyright (C) 2016  David C.  ************************
+**  This program comes with ABSOLUTELY NO WARRANTY; *****************
+**  This is free software, and you are welcome to redistribute it  **
+**  under certain conditions; type `show c' for details.  ***********
+*********************************************************************
+*********************************************************************
+
+
+    """
         
         self.socketConnected = False 
         
-        print("Global Interface")
+        print("Global Interface Initializing")
 
 
         self.sockOut = socket.socket(socket.AF_INET , socket.SOCK_STREAM)
@@ -85,9 +115,18 @@ class pyBotController:
         
         return    
     
+    def killConnection(self):
+        print("Shutting Down Connection")
+        self.sockOut.shutdown(SHUT_RDWR)
+        self.sockOut.close()
+        self.socketConnected = False
+                
+        return
+    
     def outPutRunner(self, cs):
         if self.socketConnected:
             self.sockOut.send(cs)
+        print("COM-->"),
         print(cs)
         
         return
@@ -108,34 +147,26 @@ class pyBotController:
             
             self.connectToBot()
             
-        
-        joyY = self.joy.Y()
-        joyA = self.joy.A()
-        joyB = self.joy.B()
-#         joyX = self.joy.X()
-        
-        
-        
-        
         if self.joy.Back() or not self.joy.connected():
-            return False
-        
+            return False                
+### REQUEST HEARTBEAT        
         if time.time() - self.lastRMBhbRequest >= 2:
             self.outPutRunner("<B,HB>")
             self.lastRMBhbRequest = time.time()
-        
+### CONTROLLER LOOP        
         if time.time() - self.lastRunTime >= 0.02:
+### JOY A            
+            joyA = self.joy.A()
             if(joyA and not self.lastA):
                 self.requestFromESP('B')
             self.lastA = joyA
-            
+### JOY B            
+            joyB = self.joy.B()
             if(joyB and not self.lastB):
-                print("Shutting Down Connection")
-                self.sockOut.shutdown(SHUT_RDWR)
-                self.sockOut.close()
-                self.socketConnected = False
+                self.killConnection()
             self.lastB = joyB
-        
+### JOY Y            
+            joyY = self.joy.Y()        
             if (joyY and not self.lastY):
                 self.controlMode += 1
                 self.controlMode %= 2
@@ -144,6 +175,8 @@ class pyBotController:
                 elif(self.controlMode == 1):
                     print("Arm Mode Activated")
             self.lastY = joyY
+            
+### END CONTROLLER LOOP
             
             if(self.controlMode == 0):
                 self.driveMode()
@@ -165,14 +198,11 @@ class pyBotController:
         return True
     
     
-    def listenForESP(self):
-        
+    def listenForESP(self):        
         
         if self.socketConnected:
             try:
-                line_read = self.sockOut.recvfrom(1024, MSG_DONTWAIT)[0]   
-#                 if line_read != "" :  
-#                     print "line_read = ", line_read 
+                line_read = self.sockOut.recvfrom(1024, MSG_DONTWAIT)[0]
         
             except socket.error, e:
                 err = e.args[0]
@@ -185,35 +215,26 @@ class pyBotController:
                     print err
             else:
 #                 print "ENTERED ELSE"
-                for c in line_read:
-#                     if c != "":   
-#                         print c , '\n'               
-                        
-                        if c == '<':
-                            self.returnBuffer = ""
-                            self.receivingReturn = True
-                            
-                        if self.receivingReturn == True:
-                            if c != None:
-                                self.returnBuffer += str(c)
-                            
-                            if c == '>':
-                                self.parseReturnString()
-                                self.receivingReturn = False
-                        
+                for c in line_read:                        
+                    if c == '<':
+                        self.returnBuffer = ""
+                        self.receivingReturn = True                            
+                    if self.receivingReturn == True:
+                        if c != None:
+                            self.returnBuffer += str(c)                            
+                        if c == '>':
+                            self.parseReturnString()
+                            self.receivingReturn = False                        
         return
     
+    
     def parseReturnString(self):
-        if self.returnBuffer == "<RMB HB>":
+        if self.returnBuffer == "<RMB HBoR>":
             self.lastRMBheartBeat = time.time()
-            print self.returnBuffer
+            print "Good Heart --> " , self.returnBuffer
         else:
-            print "returnBuffer = " , self.returnBuffer
-#             print self.returnBuffer
-        
-        return
-        
-        
+            print "returnBuffer --> " , self.returnBuffer        
+        return        
     
     
     def requestFromESP(self, reqStr):
@@ -223,16 +244,12 @@ class pyBotController:
         commandString += "R,"
         commandString += reqStr
         commandString += ">"
-        self.outPutRunner(commandString)
-        
-        
-        
-        return
-    
-    
-    
-    
-    
+        self.outPutRunner(commandString)        
+        return    
+
+##########################
+###########DRIVE MODES
+##########################       
     def driveMode(self):
         
         self.dpadGimbal()
