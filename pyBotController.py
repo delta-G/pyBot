@@ -261,10 +261,10 @@ class pyBotController:
         
         self.armModeHelper(rightTrigger - leftTrigger, self.GRIP)
         if(leftBump):
-            self.armServos[self.BASE].increment(-1.0)
+            self.armServos[self.BASE].increment(1.0)
             self.armCommandSender(self.BASE)
         elif(rightBump):
-            self.armServos[self.BASE].increment(1.0)
+            self.armServos[self.BASE].increment(-1.0)
             self.armCommandSender(self.BASE)
         
         leftY = self.joy.leftY()
@@ -344,8 +344,7 @@ class pyBotController:
             self.lastGimbalTime = time.time()
             
             self.armModeHelper(panVal, self.PAN)
-            self.armModeHelper(tiltVal, self.TILT)
-            
+            self.armModeHelper(tiltVal, self.TILT)            
         
         return
     
@@ -506,10 +505,10 @@ class pyBotController:
         self.armModeHelper(leftY, self.ELBOW, self.invertElbow)
         self.armModeHelper(rightTrigger - leftTrigger, self.GRIP)
         if(leftBump):
-            self.armServos[self.BASE].increment(-0.1)
+            self.armServos[self.BASE].increment(0.1)
             self.armCommandSender(self.BASE)
         elif(rightBump):
-            self.armServos[self.BASE].increment(0.1)
+            self.armServos[self.BASE].increment(-0.1)
             self.armCommandSender(self.BASE)
         
         if thumbR and not self.lastThumbR:
