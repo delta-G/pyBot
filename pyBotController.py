@@ -5,6 +5,7 @@ import time
 import errno
 from __builtin__ import False
 from _socket import MSG_DONTWAIT
+from _socket import SHUT_RDWR
 
 
 class pyBotController:
@@ -45,10 +46,12 @@ class pyBotController:
         
         self.invertShoulder = False
         self.invertElbow = False
-        self.invertWrist = False
+        self.invertWrist = True
         
         self.lastY = 0
         self.lastA = 0
+        self.lastB = 0
+        self.lastX = 0
         self.lastThumbR = 0
         self.lastThumbL = 0
         self.controlMode = 0
@@ -63,8 +66,24 @@ class pyBotController:
         self.GRIP = 5
         self.PAN = 7
         self.TILT = 6
-        self.armServos = [pyBotServo.pyBotServo("base", 1500, 544, 2400), pyBotServo.pyBotServo("shoulder" , 1214, 544, 2400), pyBotServo.pyBotServo("elbow" , 1215, 544, 2400), pyBotServo.pyBotServo("wrist" , 2000, 544, 2400), pyBotServo.pyBotServo("rotate", 1500, 544, 2400), pyBotServo.pyBotServo("grip", 2000, 1680, 2400), pyBotServo.pyBotServo("pan", 1500, 1000, 2400), pyBotServo.pyBotServo("tilt", 1500, 1000, 2400)]
+        self.armServos = [pyBotServo.pyBotServo("base", 1500, 544, 2400), 
+                          pyBotServo.pyBotServo("shoulder" , 1214, 544, 2400), 
+                          pyBotServo.pyBotServo("elbow" , 1215, 544, 2400), 
+                          pyBotServo.pyBotServo("wrist" , 2000, 544, 2400), 
+                          pyBotServo.pyBotServo("rotate", 1500, 544, 2400), 
+                          pyBotServo.pyBotServo("grip", 2000, 1680, 2400), 
+                          pyBotServo.pyBotServo("pan", 1500, 1000, 2400), 
+                          pyBotServo.pyBotServo("tilt", 1500, 1000, 2400)]
+     
+     
+    def connectToBot(self):
+        print("Connecting to Robot")
+        self.sockOut = socket.socket(socket.AF_INET , socket.SOCK_STREAM)
+        self.socketConnected = True
+        self.sockOut.connect(self.sockArgs)
+        print ("Connected to Robot")   
         
+        return    
     
     def outPutRunner(self, cs):
         if self.socketConnected:
@@ -86,13 +105,16 @@ class pyBotController:
     def runInterface(self):       
         
         if(self.joy.Start() and not self.socketConnected):
-            print("Connecting to Robot")
-            self.socketConnected = True
-            self.sockOut.connect(self.sockArgs)
-            print ("Connected to Robot")
+            
+            self.connectToBot()
+            
         
         joyY = self.joy.Y()
         joyA = self.joy.A()
+        joyB = self.joy.B()
+#         joyX = self.joy.X()
+        
+        
         
         
         if self.joy.Back() or not self.joy.connected():
@@ -106,6 +128,13 @@ class pyBotController:
             if(joyA and not self.lastA):
                 self.requestFromESP('B')
             self.lastA = joyA
+            
+            if(joyB and not self.lastB):
+                print("Shutting Down Connection")
+                self.sockOut.shutdown(SHUT_RDWR)
+                self.sockOut.close()
+                self.socketConnected = False
+            self.lastB = joyB
         
             if (joyY and not self.lastY):
                 self.controlMode += 1
@@ -305,6 +334,8 @@ class pyBotController:
     
     def dpadGimbal(self):
         
+        self.gimbalStepSize = 1
+        
         if time.time() - self.lastGimbalTime >= 0.2:
             self.lastGimbalTime = time.time()
         
@@ -316,43 +347,43 @@ class pyBotController:
                 pass
             ## UP 
             elif(dpad == 1):
-                self.armServos[self.TILT].increment(-1)
+                self.armServos[self.TILT].increment(-self.gimbalStepSize)
                 self.armCommandSender(self.TILT)
                 
             ## RIGHT
             elif(dpad == 2):
-                self.armServos[self.PAN].increment(-1)
+                self.armServos[self.PAN].increment(-self.gimbalStepSize)
                 self.armCommandSender(self.PAN)
             ## UP / RIGHT
             elif(dpad == 3):
-                self.armServos[self.TILT].increment(-1)
-                self.armServos[self.PAN].increment(-1)
+                self.armServos[self.TILT].increment(-self.gimbalStepSize)
+                self.armServos[self.PAN].increment(-self.gimbalStepSize)
                 self.armCommandSender(self.TILT)
                 self.armCommandSender(self.PAN)
             ## LEFT
             elif(dpad == 4):
-                self.armServos[self.PAN].increment(1)
+                self.armServos[self.PAN].increment(self.gimbalStepSize)
                 self.armCommandSender(self.PAN)
             ## UP / LEFT
             elif(dpad == 5):
-                self.armServos[self.TILT].increment(-1)
-                self.armServos[self.PAN].increment(1)
+                self.armServos[self.TILT].increment(-self.gimbalStepSize)
+                self.armServos[self.PAN].increment(self.gimbalStepSize)
                 self.armCommandSender(self.TILT)
                 self.armCommandSender(self.PAN)
             ## DOWN
             elif(dpad == 8):
-                self.armServos[self.TILT].increment(1)
+                self.armServos[self.TILT].increment(self.gimbalStepSize)
                 self.armCommandSender(self.TILT)
             ## DOWN / RIGHT
             elif(dpad == 10):
-                self.armServos[self.TILT].increment(1)
-                self.armServos[self.PAN].increment(-1)
+                self.armServos[self.TILT].increment(self.gimbalStepSize)
+                self.armServos[self.PAN].increment(-self.gimbalStepSize)
                 self.armCommandSender(self.PAN)
                 self.armCommandSender(self.TILT)
             ## DOWN / LEFT
             elif(dpad == 12):
-                self.armServos[self.TILT].increment(1)
-                self.armServos[self.PAN].increment(1)
+                self.armServos[self.TILT].increment(self.gimbalStepSize)
+                self.armServos[self.PAN].increment(self.gimbalStepSize)
                 self.armCommandSender(self.PAN)
                 self.armCommandSender(self.TILT)
             else:
